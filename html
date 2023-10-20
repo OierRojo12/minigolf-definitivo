@@ -3,31 +3,22 @@
 <head>
   <style>
     body {
-      background-color: #4CAF50; /* Verde como el césped de golf */
+      background-color: #4CAF50; 
       margin: 0;
       font-family: Arial, sans-serif;
     }
 
     canvas {
-      border: 1px solid #333; /* Bordes oscuros */
-      background-color: #cce6a4; /* Fondo de color más claro */
+      border: 1px solid #333; 
+      background-color: #cce6a4; 
       display: block;
       margin: 20px auto;
-      border-radius: 10px; /* Esquinas redondeadas */
-    }
-
-    .welcome-text {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      text-align: right;
-      font-size: 18px;
-      color: #fff; /* Texto en color blanco */
+      border-radius: 10px; 
     }
 
     p {
       font-size: 16px;
-      color: #333; /* Texto en color oscuro */
+      color: #333; 
     }
 
     .button-container {
@@ -35,8 +26,8 @@
     }
 
     #hitButton {
-      background-color: #f5a623; /* Naranja para el botón de golpear */
-      color: #fff; /* Texto en color blanco */
+      background-color: #f5a623; 
+      color: #fff; 
       font-size: 18px;
       border: none;
       padding: 10px 20px;
@@ -46,18 +37,235 @@
     }
 
     #hitButton:hover {
-      background-color: #e5951c; /* Color naranja más oscuro al pasar el mouse */
+      background-color: #e5951c; 
     }
 
     input[type="range"] {
       width: 100%;
       height: 20px;
     }
+
+    .power-container {
+      text-align: center;
+      margin-top: 10px; 
+    }
+
+    #power {
+      font-size: 20px; 
+    }
+
+    .instructions {
+      text-align: left;
+      margin: 20px;
+    }
+
+    .instructions p {
+      font-size: 18px; 
+    }
+
+    .instructions ul {
+      list-style: disc; 
+      margin-left: 20px; 
+    }
   </style>
 </head>
 <body>
   <canvas id="canvas" width="400" height="400"></canvas>
-  <p>Fuerza: <span id="power">0</span></p>
+  <div class="power-container">
+    <p>Fuerza: <span id="power">0</span></p>
+  </div>
   <div class="button-container">
     <button id="hitButton" disabled>Golpear</button>
   </div>
+  <input type="range" id="powerSlider" min="0" max="200" step="1" style="width: 100%;">
+  <div class="instructions">
+    <p>Bienvenido al juego Minigolf, creado por Oier y Galder. A continuación te dejamos las instrucciones para jugar:</p>
+    <ul>
+      <li>Arrastra desde la bola hacia la dirección que desee tirar la bola.</li>
+      <li>En la barra de potencia selecciona la potencia con la que quieres tirar la bola y pulsa en golpear.</li>
+      <li>Cuidado con la potencia, si te pasas de largo fallarás el tiro.</li>
+    </ul>
+  </div>
+  </script>
+</body>
+</html>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const hole = {
+      x: Math.random() * canvas.width * 0.9 + 20,
+      y: Math.random() * canvas.height * 0.9 + 20,
+      radius: 10,
+    };
+    const ball = {
+      x: canvas.width / 4,
+      y: canvas.height / 2,
+      radius: 5,
+      isMoving: false,
+      moveSpeed: 2,
+      targetX: 0,
+      targetY: 0,
+    };
+    let hitting = false;
+    let arrowStart = { x: ball.x, y: ball.y };
+    let arrowEnd = { x: ball.x, y: ball.y };
+    let drawingArrow = false;
+
+    function drawHole() {
+      ctx.beginPath();
+      ctx.arc(hole.x, hole.y, hole.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "green";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawArrow() {
+      ctx.beginPath();
+      ctx.moveTo(arrowStart.x, arrowStart.y);
+      ctx.lineTo(arrowEnd.x, arrowEnd.y);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawHole();
+      drawBall();
+      if (drawingArrow) {
+        drawArrow();
+      }
+    }
+
+    document.getElementById("hitButton").addEventListener("click", () => {
+        if (hitting) return;
+
+        const power = parseFloat(document.getElementById("power").textContent) * 2; // Duplica la fuerza
+        const distance = power;
+
+        const angle = Math.atan2(arrowEnd.y - arrowStart.y, arrowEnd.x - arrowStart.x);
+
+        ball.targetX = ball.x + distance * Math.cos(angle);
+        ball.targetY = ball.y + distance * Math.sin(angle);
+
+        hitting = true;
+        document.getElementById("powerSlider").disabled = true;
+        document.getElementById("powerSlider").value = 0;
+
+        animateBall();
+    });
+
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!hitting) {
+        draw();
+      }
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      if (!hitting) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        if (calculateDistance(mouseX, mouseY, ball.x, ball.y) <= ball.radius) {
+          arrowStart.x = ball.x;
+          arrowStart.y = ball.y;
+          arrowEnd.x = arrowStart.x;
+          arrowEnd.y = arrowStart.y;
+          drawingArrow = true;
+          draw();
+        }
+      }
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!hitting && drawingArrow) {
+        const rect = canvas.getBoundingClientRect();
+        arrowEnd.x = e.clientX - rect.left;
+        arrowEnd.y = e.clientY - rect.top;
+        draw();
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      if (drawingArrow) {
+        drawingArrow = false;
+        document.getElementById("hitButton").disabled = false;
+        draw();
+      }
+    });
+
+    document.getElementById("powerSlider").addEventListener("input", (e) => {
+      const powerValue = e.target.value;
+      document.getElementById("power").textContent = powerValue;
+    });
+
+    function animateBall() {
+      if (hitting) {
+        draw();
+
+        if (ball.isMoving) {
+          const dx = ball.targetX - ball.x;
+          const dy = ball.targetY - ball.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance <= ball.moveSpeed) {
+            ball.x = ball.targetX;
+            ball.y = ball.targetY;
+            ball.isMoving = false;
+
+            if (calculateDistance(ball.x, ball.y, hole.x, hole.y) <= ball.radius + hole.radius) {
+              alert("¡Hoyo en uno! Has ganado el juego.");
+              resetGame();
+            } else if (ball.x > canvas.width) {
+              alert("La pelota ha salido del área de juego. Intenta de nuevo.");
+              resetGame();
+            }
+          } else {
+            const angle = Math.atan2(dy, dx);
+            ball.x += ball.moveSpeed * Math.cos(angle);
+            ball.y += ball.moveSpeed * Math.sin(angle);
+          }
+        } else {
+          ball.isMoving = true;
+        }
+
+        requestAnimationFrame(animateBall);
+      }
+    }
+
+    function resetGame() {
+      hole.x = Math.random() * canvas.width * 0.9 + 20;
+      hole.y = Math.random() * canvas.height * 0.9 + 20;
+      ball.x = canvas.width / 4;
+      ball.y = canvas.height / 2;
+      ball.isMoving = false;
+      hitting = false;
+      drawingArrow = false;
+      document.getElementById("power").textContent = 0;
+      document.getElementById("powerSlider").disabled = false;
+      document.getElementById("hitButton").disabled = true;
+      draw();
+    }
+
+    function calculateDistance(x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    draw();
+  </script>
+</body>
+</html>
